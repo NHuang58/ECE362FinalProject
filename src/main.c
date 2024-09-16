@@ -54,7 +54,6 @@ void enable_ports(void) {
     GPIOC->MODER |= 0x00005500;
 
     GPIOC->OTYPER |= 0xf0;
-
     GPIOC->PUPDR |= 0x55;
 }
 
@@ -208,7 +207,7 @@ void init_tim2(void) {
 
     TIM2->DIER |= TIM_DIER_UIE;
     
-    // NVIC_SetPriority(TIM2_IRQn, 1);
+    // NVIC_SetPriority(TIM2_IRQn, 3);
     NVIC_EnableIRQ(TIM2_IRQn);
     TIM2->CR1 |= TIM_CR1_CEN;
 }
@@ -304,8 +303,8 @@ void init_tim6(void) {
 
     int scale = 48000000 / RATE;
 
-    TIM6->PSC = ((scale / 10) - 1);
-    TIM6->ARR = (10 - 1);
+    TIM6->PSC = ((scale / 2) - 1);
+    TIM6->ARR = (2 - 1);
 
     TIM6->DIER |= TIM_DIER_UIE;
     
@@ -380,7 +379,7 @@ int main(void) {
     setup_dac();
     init_tim6();
 
-// #define ONE_TONE
+//#define ONE_TONE
 #ifdef ONE_TONE
     for(;;) {
         float f = getfloat();
@@ -389,7 +388,7 @@ int main(void) {
 #endif
 
     // demonstrate part 4
-// #define MIX_TONES
+#define MIX_TONES
 #ifdef MIX_TONES
     for(;;) {
         char key = get_keypress();
