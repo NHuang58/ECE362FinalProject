@@ -12,7 +12,7 @@
 
 // Fill out your username, otherwise your completion code will have the 
 // wrong username!
-const char* username = "username";
+const char* username = "huan1811";
 
 /******************************************************************************
 */ 
@@ -44,25 +44,54 @@ void printfloat(float f);
 // enable_ports()
 //============================================================================
 void enable_ports(void) {
-    
+    RCC->AHBENR |= RCC_AHBENR_GPIOBEN;
+    RCC->AHBENR |= RCC_AHBENR_GPIOCEN;
+
+    GPIOB->MODER &= 0xffffff00;
+    GPIOC->MODER &= 0xffffff00;
+
+    GPIOB->MODER |= 0x00d55555;
+    GPIOC->MODER |= 0x00005500;
+
+    GPIOC->OTYPER |= 0xf0;
+
+    GPIOC->PUPDR |= 0x55;
 }
 
 //============================================================================
 // setup_dma() + enable_dma()
 //============================================================================
 void setup_dma(void) {
-    
+    RCC->AHBENR |= RCC_AHBENR_DMA1EN;
+    DMA1_Channel5->CMAR = (uint32_t) &msg;
+    DMA1_Channel5->CPAR = (uint32_t) &GPIOB->ODR;
+
+    DMA1_Channel5->CNDTR = 8;
+    DMA1_Channel5->CCR |= DMA_CCR_DIR;
+    DMA1_Channel5->CCR |= DMA_CCR_MINC;
+    DMA1_Channel5->CCR |= 0x400;
+    DMA1_Channel5->CCR |= 0x100;
+    DMA1_Channel5->CCR |= 0x20;
+
 }
 
 void enable_dma(void) {
-    
+    DMA1_Channel5->CCR |= 0x1;
 }
 
 //============================================================================
 // init_tim15()
 //============================================================================
 void init_tim15(void) {
+    RCC->APB2ENR |= RCC_APB2ENR_TIM15EN; //enable timer
 
+    TIM15->PSC = (4800 - 1);
+    TIM15->ARR = (10 - 1);
+
+    TIM15->DIER |= TIM_DIER_UDE;
+
+    TIM15->CR1 |= 0x1;
+    
 }
 
 //=============================================================================
