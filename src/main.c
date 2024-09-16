@@ -91,7 +91,6 @@ void init_tim15(void) {
     TIM15->DIER |= TIM_DIER_UDE;
 
     TIM15->CR1 |= 0x1;
-    
 }
 
 //=============================================================================
@@ -112,13 +111,28 @@ void show_keys(void);     // demonstrate get_key_event()
 // The Timer 7 ISR
 //============================================================================
 // Write the Timer 7 ISR here.  Be sure to give it the right name.
+void TIM7_IRQHandler() {
+    TIM7->SR &= ~TIM_SR_UIF;
 
+    // int rows = read_rows();
+    uint8_t rows = read_rows();
+    update_history(col, rows);
+    col = (col + 1) & 3;
+    drive_column(col);
+}
 
 //============================================================================
 // init_tim7()
 //============================================================================
 void init_tim7(void) {
+    RCC->APB1ENR |= RCC_APB1ENR_TIM7EN;
 
+    TIM7->PSC = 47;
+    TIM7->ARR = 999;
+
+    TIM7->DIER |= TIM_DIER_UIE;
+    NVIC_EnableIRQ(TIM7_IRQn);
+    TIM7->CR1 |= TIM_CR1_CEN;
 }
 
 //=============================================================================
@@ -130,7 +144,27 @@ uint32_t volume = 2048;
 // setup_adc()
 //============================================================================
 void setup_adc(void) {
+    RCC->AHBENR |= RCC_AHBENR_GPIOAEN;
+    GPIOA->MODER |= GPIO_MODER_MODER1;
+    RCC->APB2ENR |= RCC_APB2ENR_ADC1EN;
+    RCC->CR2 |= RCC_CR2_HSI14ON;
 
+    while (!(RCC->CR2 & RCC_CR2_HSI14RDY)) {
+        nano_wait(1);
+    }
+
+    ADC1->CR |= ADC_CR_ADEN;
+
+    while (!(RCC->CR2 & RCC_CR2_HSI14RDY)) {
+        nano_wait(1);
+    }
+
+    ADC1->CHSELR |= ADC_CHSELR_CHSEL1;
+
+
+    while (!(RCC->CR2 & RCC_CR2_HSI14RDY)) {
+        nano_wait(1);
+    }
 }
 
 //============================================================================
@@ -145,14 +179,38 @@ int bcn = 0;
 // Timer 2 ISR
 //============================================================================
 // Write the Timer 2 ISR here.  Be sure to give it the right name.
+void TIM2_IRQHandler(void) {
+    TIM2->SR &= ~TIM_SR_UIF;
+    ADC1->CR |= ADC_CR_ADSTART;
 
+    while (!(ADC1->ISR & ADC_ISR_EOC)) {
+        nano_wait(1);
+    }
 
+    bcsum -= boxcar[bcn];
+    bcsum += boxcar[bcn] = ADC1->DR;
+    bcn += 1;
+    if (bcn >= BCSIZE) bcn = 0;
+    volume = bcsum / BCSIZE;
+
+    // for(int x=0; x<10000; x++)
+    // ;
+}
 
 //============================================================================
 // init_tim2()
 //============================================================================
 void init_tim2(void) {
+    RCC->APB1ENR |= RCC_APB1ENR_TIM2EN;
+
+    TIM2->PSC = (4800 - 1);
+    TIM2->ARR = (1000 -1);
+
+    TIM2->DIER |= TIM_DIER_UIE;
     
+    // NVIC_SetPriority(TIM2_IRQn, 1);
+    NVIC_EnableIRQ(TIM2_IRQn);
+    TIM2->CR1 |= TIM_CR1_CEN;
 }
 
 
@@ -204,19 +262,56 @@ void set_freq(int chan, float f) {
 // setup_dac()
 //============================================================================
 void setup_dac(void) {
+    RCC->AHBENR |= RCC_AHBENR_GPIOAEN;  
 
+    GPIOA->MODER |= GPIO_MODER_MODER4;
+    RCC->APB1ENR |= RCC_APB1ENR_DACEN;
+    
+    // DAC->CR |= DAC_CR_TSEL1_0;
+    DAC->CR = (0x1 << 2);
+
+    // DAC->CR |= DAC_CR_TEN1;
+    DAC->CR |= DAC_CR_EN1;
 }
 
 //============================================================================
 // Timer 6 ISR
 //============================================================================
 // Write the Timer 6 ISR here.  Be sure to give it the right name.
+void TIM6_DAC_IRQHandler(){
+    TIM6->SR &= ~TIM_SR_UIF;
+
+    offset0 += step0;
+    offset1 += step1;
+
+    if (offset0 >= (N << 16)) {offset0 -= (N << 16);}
+    if (offset1 >= (N << 16)) {offset1 -= (N << 16);}
+
+    int samp = wavetable[offset0 >> 16] + wavetable[offset1 >> 16];//
+    
+    samp *= volume;
+    samp = (samp >> 17);
+    samp += 2048;
+    DAC->DHR12R1 = (uint16_t) samp;
+
+}
 
 //============================================================================
 // init_tim6()
 //============================================================================
 void init_tim6(void) {
+    RCC->APB1ENR |= RCC_APB1ENR_TIM6EN;
 
+    int scale = 48000000 / RATE;
+
+    TIM6->PSC = ((scale / 10) - 1);
+    TIM6->ARR = (10 - 1);
+
+    TIM6->DIER |= TIM_DIER_UIE;
+    
+    NVIC_EnableIRQ(17);
+    TIM6->CR2 |= TIM_CR2_MMS_1;    
+    TIM6->CR1 |= TIM_CR1_CEN;
 }
 
 //============================================================================
@@ -235,7 +330,8 @@ int main(void) {
     msg[7] |= font[' '];
 
     // Uncomment when you are ready to produce a confirmation code.
-    // autotest();
+    autotest();
+    //debug here
 
     enable_ports();
     setup_dma();
@@ -244,9 +340,11 @@ int main(void) {
 
     // Comment this for-loop before you demo part 1!
     // Uncomment this loop to see if "ECE 362" is displayed on LEDs.
-    for (;;) {
-        asm("wfi");
-    }
+    
+    // for (;;) {
+    //     asm("wfi");
+    // }
+
     // End of for loop
 
     // Demonstrate part 1
