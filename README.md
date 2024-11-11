@@ -1,10 +1,10 @@
 This is a Mini Piano using the STM32 Microcontroller for the ECE 362 Final Project
 
 Team Members:
--Amir Mokhtarpour
--Nathan Huang
--Jackson Hu
--Nolan Jones
+-Amir Mokhtarpour\n
+-Nathan Huang\n
+-Jackson Hu\n
+-Nolan Jones\n
 
 Full Project Proposal and Description Found Below:
 Group Name: The Piano Guys
