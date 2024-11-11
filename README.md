@@ -85,3 +85,5 @@ By 11/9:
 
 11/22:
 - Demo day ! :)
+
+![Block diagram of piano project][./block_diagram.png]
