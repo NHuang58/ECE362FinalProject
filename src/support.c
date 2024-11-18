@@ -188,6 +188,9 @@ float getfloat(void)
     int digits = 0;
     int decimal = 0;
     int enter = 0;
+
+    int note = 0;
+    
     clear_display();
     set_digit_segments(7, font['0']);
     while(!enter) {

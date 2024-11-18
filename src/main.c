@@ -2,23 +2,32 @@
   ******************************************************************************
   * @file    main.c
   * @author  Weili An, Niraj Menon
-  * @date    Jan 31 2024
-  * @brief   ECE 362 Lab 5 Student template
+  * @date    Jan 24 2024
+  * @brief   ECE 362 Lab 4 Student template
   ******************************************************************************
 */
 
-/*******************************************************************************/
+/**
+******************************************************************************/
 
 // Fill out your username, otherwise your completion code will have the 
 // wrong username!
 const char* username = "huan1811";
 
-/*******************************************************************************/ 
+/******************************************************************************
+*/ 
 
 #include "stm32f0xx.h"
 #include <math.h>   // for M_PI
+#include <stdint.h>
+#include <stdio.h>
 
 void nano_wait(int);
+void autotest();
+
+//=============================================================================
+// Part 1: 7-segment display update with DMA
+//=============================================================================
 
 // 16-bits per digit.
 // The most significant 8 bits are the digit number.
@@ -30,133 +39,6 @@ void print(const char str[]);
 // Print a floating-point value.
 void printfloat(float f);
 
-void autotest(void);
-
-//============================================================================
-// PWM Lab Functions
-//============================================================================
-void setup_tim3(void) {
-    //enable clock for TIM3
-    RCC->APB1ENR |= RCC_APB1ENR_TIM3EN;
-    //enable clock for GPIOC
-    RCC->AHBENR |= RCC_AHBENR_GPIOCEN; 
-
-    //set mode to alternate function (6-9)
-    GPIOC->MODER &= 0xfff00fff;
-    GPIOC->MODER |= 0xaa000;
-    
-    //prescaler
-    TIM3->PSC = (48000 - 1);
-    //reload
-    TIM3->ARR = (1000 - 1);
-    
-    //PWM mode 1
-    TIM3->CCMR2 |= TIM_CCMR2_OC4M_1 | TIM_CCMR2_OC4M_2;
-    TIM3->CCMR2 |= TIM_CCMR2_OC3M_1 | TIM_CCMR2_OC3M_2;
-    TIM3->CCMR1 |= TIM_CCMR1_OC2M_1 | TIM_CCMR1_OC2M_2;
-    TIM3->CCMR1 |= TIM_CCMR1_OC1M_1 | TIM_CCMR1_OC1M_2;
-
-    //channel outputs
-    TIM3->CCER |= TIM_CCER_CC1E | TIM_CCER_CC2E | TIM_CCER_CC3E | TIM_CCER_CC4E;
-
-    //enable
-    TIM3->CR1 |= TIM_CR1_CEN;
-    
-    //CCRx registers
-    TIM3->CCR1 = 800;
-    TIM3->CCR2 = 600;
-    TIM3->CCR3 = 400;
-    TIM3->CCR4 = 200;
-}
-
-void setup_tim1(void) {
-    // Generally the steps are similar to those in setup_tim3
-    // except we will need to set the MOE bit in BDTR. 
-    // Be sure to do so ONLY after enabling the RCC clock to TIM1.
-    
-    RCC->APB2ENR |= RCC_APB2ENR_TIM1EN;
-    RCC->AHBENR |= RCC_AHBENR_GPIOAEN;
-
-    GPIOA->MODER &= (0xff00ffff);
-
-    GPIOA->MODER |= 0xaa0000;
-
-    GPIOA->AFR[1] &= ~(0x0000ffff);
-    GPIOA->AFR[1] |= 0x2222;
-
-    TIM1->BDTR |= TIM_BDTR_MOE;
-
-    TIM1->PSC = (1 - 1);
-    TIM1->ARR = (2400 -1);
-
-    // TIM1->CCMR2 |= (TIM_CCMR2_OC4M_0 | TIM_CCMR2_OC3M_0);
-    // TIM1->CCMR1 |= (TIM_CCMR1_OC2M_0 | TIM_CCMR1_OC1M_0);
-
-    TIM1->CCMR2 |= TIM_CCMR2_OC4M_1 | TIM_CCMR2_OC4M_2;
-    TIM1->CCMR2 |= TIM_CCMR2_OC3M_1 | TIM_CCMR2_OC3M_2;
-    TIM1->CCMR1 |= TIM_CCMR1_OC2M_1 | TIM_CCMR1_OC2M_2;
-    TIM1->CCMR1 |= TIM_CCMR1_OC1M_1 | TIM_CCMR1_OC1M_2;
-
-    TIM1->CCMR2 |= TIM_CCMR2_OC4PE;
-
-    TIM1->CCER |= TIM_CCER_CC1E | TIM_CCER_CC2E | TIM_CCER_CC3E | TIM_CCER_CC4E;
-
-    TIM1->CR1 |= TIM_CR1_CEN;
-}
-
-int getrgb(void);
-
-// Helper function for you
-// Accept a byte in BCD format and convert it to decimal
-uint8_t bcd2dec(uint8_t bcd) {
-    // Lower digit
-    uint8_t dec = bcd & 0xF;
-
-    // Higher digit
-    dec += 10 * (bcd >> 4);
-    return dec;
-}
-
-void setrgb(int rgb) {
-    uint8_t b = bcd2dec((rgb) & 0xFF);
-    uint8_t g = bcd2dec((rgb >> 8) & 0xFF);
-    uint8_t r = bcd2dec((rgb >> 16) & 0xFF);
-
-    // TODO: Assign values to TIM1->CCRx registers
-    // Remember these are all percentages
-    // Also, LEDs are on when the corresponding PWM output is low
-    // so you might want to invert the numbers. 
-    
-
-    TIM1->CCR1 = (2400 - ((2400 * r) / 99));
-    TIM1->CCR2 = (2400 - ((2400 * g) / 99));
-    TIM1->CCR3 = (2400 - ((2400 * b) / 99));
-}
-
-//============================================================================
-// Lab 4 code
-// Add in your functions from previous lab
-//============================================================================
-
-// Part 3: Analog-to-digital conversion for a volume level.
-uint32_t volume = 2400;
-
-// Variables for boxcar averaging.
-#define BCSIZE 32
-int bcsum = 0;
-int boxcar[BCSIZE];
-int bcn = 0;
-
-void dialer(void);
-
-// Parameters for the wavetable size and expected synthesis rate.
-#define N 1000
-#define RATE 20000
-short int wavetable[N];
-int step0 = 0;
-int offset0 = 0;
-int step1 = 0;
-int offset1 = 0;
 
 //============================================================================
 // enable_ports()
@@ -227,6 +109,7 @@ void show_keys(void);     // demonstrate get_key_event()
 //============================================================================
 // The Timer 7 ISR
 //============================================================================
+// Write the Timer 7 ISR here.  Be sure to give it the right name.
 void TIM7_IRQHandler() {
     TIM7->SR &= ~TIM_SR_UIF;
 
@@ -250,6 +133,11 @@ void init_tim7(void) {
     NVIC_EnableIRQ(TIM7_IRQn);
     TIM7->CR1 |= TIM_CR1_CEN;
 }
+
+//=============================================================================
+// Part 3: Analog-to-digital conversion for a volume level.
+//=============================================================================
+uint32_t volume = 2048;
 
 //============================================================================
 // setup_adc()
@@ -277,6 +165,14 @@ void setup_adc(void) {
         nano_wait(1);
     }
 }
+
+//============================================================================
+// Varables for boxcar averaging.
+//============================================================================
+#define BCSIZE 32
+int bcsum = 0;
+int boxcar[BCSIZE];
+int bcn = 0;
 
 //============================================================================
 // Timer 2 ISR
@@ -317,71 +213,19 @@ void init_tim2(void) {
 }
 
 
-//============================================================================
-// setup_dac()
-//============================================================================
-void setup_dac(void) {
-    RCC->AHBENR |= RCC_AHBENR_GPIOAEN;  
+//===========================================================================
+// Part 4: Create an analog sine wave of a specified frequency
+//===========================================================================
+void dialer(void);
 
-    GPIOA->MODER |= GPIO_MODER_MODER4;
-    RCC->APB1ENR |= RCC_APB1ENR_DACEN;
-    
-    // DAC->CR |= DAC_CR_TSEL1_0;
-    DAC->CR = (0x1 << 2);
-
-    // DAC->CR |= DAC_CR_TEN1;
-    DAC->CR |= DAC_CR_EN1;
-}
-
-//============================================================================
-// Timer 6 ISR
-//============================================================================
-// Write the Timer 6 ISR here.  Be sure to give it the right name.
-void TIM6_DAC_IRQHandler(){
-    TIM6->SR &= ~TIM_SR_UIF;
-
-    offset0 += step0;
-    offset1 += step1;
-
-    if (offset0 >= (N << 16)) {offset0 -= (N << 16);}
-    if (offset1 >= (N << 16)) {offset1 -= (N << 16);}
-
-    int samp = wavetable[offset0 >> 16] + wavetable[offset1 >> 16];//
-    
-    // samp *= volume;
-    // samp = (samp >> 17);
-    // samp += 2048;
-
-    samp = (((samp * volume))>>18) + 1200;
-    
-    //replace
-    // samp = (((samp * volume) & 0xfff)>>18) + 1200;
-    
-    //replace
-    // DAC->DHR12R1 = (uint16_t) samp;
-    TIM1->CCR4 = (uint16_t) samp;
-
-}
-
-//============================================================================
-// init_tim6()
-//============================================================================
-void init_tim6(void) {
-    RCC->APB1ENR |= RCC_APB1ENR_TIM6EN;
-
-    int scale = 48000000 / RATE;
-
-    TIM6->PSC = ((scale / 2) - 1);
-    TIM6->ARR = (2 - 1);
-
-    TIM6->DIER |= TIM_DIER_UIE;
-    
-    NVIC_EnableIRQ(17);
-    //Turn off TRGO generation
-
-    // TIM6->CR2 |= TIM_CR2_MMS_1;    
-    TIM6->CR1 |= TIM_CR1_CEN;
-}
+// Parameters for the wavetable size and expected synthesis rate.
+#define N 1000
+#define RATE 20000
+short int wavetable[N];
+int step0 = 0;
+int offset0 = 0;
+int step1 = 0;
+int offset1 = 0;
 
 //===========================================================================
 // init_wavetable()
@@ -414,21 +258,66 @@ void set_freq(int chan, float f) {
 }
 
 //============================================================================
+// setup_dac()
+//============================================================================
+void setup_dac(void) {
+    RCC->AHBENR |= RCC_AHBENR_GPIOAEN;  
+
+    GPIOA->MODER |= GPIO_MODER_MODER4;
+    RCC->APB1ENR |= RCC_APB1ENR_DACEN;
+    
+    // DAC->CR |= DAC_CR_TSEL1_0;
+    DAC->CR = (0x1 << 2);
+
+    // DAC->CR |= DAC_CR_TEN1;
+    DAC->CR |= DAC_CR_EN1;
+}
+
+//============================================================================
+// Timer 6 ISR
+//============================================================================
+// Write the Timer 6 ISR here.  Be sure to give it the right name.
+void TIM6_DAC_IRQHandler(){
+    TIM6->SR &= ~TIM_SR_UIF;
+
+    offset0 += step0;
+    offset1 += step1;
+
+    if (offset0 >= (N << 16)) {offset0 -= (N << 16);}
+    if (offset1 >= (N << 16)) {offset1 -= (N << 16);}
+
+    int samp = wavetable[offset0 >> 16] + wavetable[offset1 >> 16];//
+    
+    samp *= volume;
+    samp = (samp >> 17);
+    samp += 2048;
+    DAC->DHR12R1 = (uint16_t) samp;
+
+}
+
+//============================================================================
+// init_tim6()
+//============================================================================
+void init_tim6(void) {
+    RCC->APB1ENR |= RCC_APB1ENR_TIM6EN;
+
+    int scale = 48000000 / RATE;
+
+    TIM6->PSC = ((scale / 2) - 1);
+    TIM6->ARR = (2 - 1);
+
+    TIM6->DIER |= TIM_DIER_UIE;
+    
+    NVIC_EnableIRQ(17);
+    TIM6->CR2 |= TIM_CR2_MMS_1;    
+    TIM6->CR1 |= TIM_CR1_CEN;
+}
+
+//============================================================================
 // All the things you need to test your subroutines.
 //============================================================================
 int main(void) {
     internal_clock();
-
-    // Uncomment autotest to get the confirmation code.
-    // autotest();
-
-    // Demonstrate part 1
-// #define TEST_TIMER3
-#ifdef TEST_TIMER3
-    setup_tim3();
-    for(;;) { }
-#endif
-
     // Initialize the display to something interesting to get started.
     msg[0] |= font['E'];
     msg[1] |= font['C'];
@@ -439,132 +328,74 @@ int main(void) {
     msg[6] |= font['2'];
     msg[7] |= font[' '];
 
+    // Uncomment when you are ready to produce a confirmation code.
+    autotest();
+    //debug here
+
     enable_ports();
     setup_dma();
     enable_dma();
     init_tim15();
+
+    // Comment this for-loop before you demo part 1!
+    // Uncomment this loop to see if "ECE 362" is displayed on LEDs.
+    
+    // for (;;) {
+    //     asm("wfi");
+    // }
+
+    // End of for loop
+
+    // Demonstrate part 1
+// #define SCROLL_DISPLAY
+#ifdef SCROLL_DISPLAY
+    for(;;)
+        for(int i=0; i<8; i++) {
+            print(&"Hello...Hello..."[i]);
+            nano_wait(250000000);
+        }
+#endif
+
     init_tim7();
+
+    // Demonstrate part 2
+// #define SHOW_KEY_EVENTS
+#ifdef SHOW_KEY_EVENTS
+    show_keys();
+#endif
+
     setup_adc();
     init_tim2();
+
+    // Demonstrate part 3
+// #define SHOW_VOLTAGE
+#ifdef SHOW_VOLTAGE
+    for(;;) {
+        printfloat(2.95 * volume / 4096);
+    }
+#endif
+
     init_wavetable();
+    setup_dac();
     init_tim6();
 
-    setup_tim1();
-
-    // demonstrate part 2
-// #define TEST_TIM1
-#ifdef TEST_TIM1
+#define ONE_TONE
+#ifdef ONE_TONE
     for(;;) {
-        // Breathe in...
-        for(float x=1; x<2400; x *= 1.1) {
-            TIM1->CCR1 = TIM1->CCR2 = TIM1->CCR3 = 2400-x;
-            nano_wait(100000000);
-        }
-        // ...and out...
-        for(float x=2400; x>=1; x /= 1.1) {
-            TIM1->CCR1 = TIM1->CCR2 = TIM1->CCR3 = 2400-x;
-            nano_wait(100000000);
-        }
-        // ...and start over.
+        float f = getfloat();
+        set_freq(0,f);
     }
 #endif
-
-    // demonstrate part 3
-#define PIANO
-#ifdef PIANO
-    for (;;) {
-        char key = get_keypress();
-        float freq = 0; // Initialize frequency variable
-
-        switch (key) {
-            // SET NOTE TO C (Middle C = 261.63 Hz)
-            case '1': 
-                freq = 261.63;
-                break;
-            // SET NOTE TO C# / Db (C#4/Db4 = 277.18 Hz)
-            case '2': 
-                freq = 277.18;
-                break;
-            // SET NOTE TO D (D4 = 293.66 Hz)
-            case '3': 
-                freq = 293.66;
-                break;
-            // SET NOTE TO D# / Eb (D#4/Eb4 = 311.13 Hz)
-            case 'A': 
-                freq = 311.13;
-                break;
-            // SET NOTE TO E (E4 = 329.63 Hz)
-            case '4': 
-                freq = 329.63;
-                break;
-            // SET NOTE TO F (F4 = 349.23 Hz)
-            case '5': 
-                freq = 349.23;
-                break;
-            // SET NOTE TO F# / Gb (F#4/Gb4 = 369.99 Hz)
-            case '6': 
-                freq = 369.99;
-                break;
-            // SET NOTE TO G (G4 = 392.00 Hz)
-            case 'B': 
-                freq = 392.00;
-                break;
-            // SET NOTE TO G# / Ab (G#4/Ab4 = 415.30 Hz)
-            case '7': 
-                freq = 415.30;
-                break;
-            // SET NOTE TO A (A4 = 440.00 Hz)
-            case '8': 
-                freq = 440.00;
-                break;
-            // SET NOTE TO A# / Bb (A#4/Bb4 = 466.16 Hz)
-            case '9': 
-                freq = 466.16;
-                break;
-            // SET NOTE TO B (B4 = 493.88 Hz)
-            case 'C': 
-                freq = 493.88;
-                break;
-            // SCALE UP BY 1 OCTAVE
-            case '*':
-                freq *= 2;
-                continue;
-            // SCALE DOWN BY 1 OCTAVE
-            case '#':
-                freq /= 2;
-                continue;
-
-            default:
-                continue;
-        }
-
-        set_freq(0, freq);
-    }
-#endif
-
-
-// #ifdef MIX_TONES
-//     set_freq(0, 1000);
-//     for(;;) {
-//         char key = get_keypress();
-//         if (key == 'A')
-//             set_freq(0,getfloat());
-//         if (key == 'B')
-//             set_freq(1,getfloat());
-//     }
-// #endif
 
     // demonstrate part 4
-// #define TEST_SETRGB
-#ifdef TEST_SETRGB
+// #define MIX_TONES
+#ifdef MIX_TONES
     for(;;) {
         char key = get_keypress();
         if (key == 'A')
             set_freq(0,getfloat());
         if (key == 'B')
             set_freq(1,getfloat());
-        if (key == 'D')
-            setrgb(getrgb());
     }
 #endif
 
