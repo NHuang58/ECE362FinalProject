@@ -4,7 +4,7 @@
 #include "diskio.h"		/* Declarations of disk functions */
 #include <stdio.h>
 
-SPI_TypeDef *sd = SPI2; // the SPI interface to use for the SD card
+SPI_TypeDef *sd = SPI1; // the SPI interface to use for the SD card
 
 // Weak definitions for the functions that must be implemented elsewhere
 // to allow the SPI interface for the SD card to work.
@@ -35,14 +35,14 @@ void spi_clear_rxfifo(SPI_TypeDef *s)
 // reading the value from the SPI_DR and returning that value.
 uint8_t sdcard_write(uint8_t b)
 {
-    while((SPI2->SR & SPI_SR_TXE) == 0)
+    while((SPI1->SR & SPI_SR_TXE) == 0)
         ;
-    *((volatile uint8_t*)&(SPI2->DR)) = b;
+    *((volatile uint8_t*)&(SPI1->DR)) = b;
     int value = 0xff;
-    while ((SPI2->SR & SPI_SR_RXNE) != SPI_SR_RXNE)
+    while ((SPI1->SR & SPI_SR_RXNE) != SPI_SR_RXNE)
         ;
-        value = *(volatile uint8_t *)&(SPI2->DR);
-    while((SPI2->SR & SPI_SR_BSY) == SPI_SR_BSY)
+        value = *(volatile uint8_t *)&(SPI1->DR);
+    while((SPI1->SR & SPI_SR_BSY) == SPI_SR_BSY)
         ;
     return value;
 }
@@ -154,7 +154,7 @@ DSTATUS disk_initialize (
     disable_sdcard();
     sdcard_init_clock();
     sdcard_io_high_speed();
-    spi_clear_rxfifo(SPI2);
+    spi_clear_rxfifo(SPI1);
     enable_sdcard();
     value = sdcard_cmd(0, 0x00000000, 0x95); // Go to idle state
     if (value != 1)
