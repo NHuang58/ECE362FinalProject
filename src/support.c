@@ -329,3 +329,74 @@ void dialer(void)
         }
     }
 }
+
+void play_piano(void) {
+    float freq = 440.0;         // Base frequency (A4)
+    char note = 'A';            // Initial note
+    int enter = 0;              // Sentinel variable
+    int flat = 0;              // Indicates if the note is sharp
+    char note_display;          // Stores the current note or note with sharp
+
+    clear_display();            // Initialize the display
+    for (int i = 0; i < 8; i++) {
+        set_digit_segments(i, font[' ']); // Start with a blank display
+    }
+
+    while (!enter) {
+        int key = get_keypress();
+
+        // Determine note and frequency
+        switch (key) {
+            // Notes
+            case '1': freq = 261.63; note = 'C'; flat = 0; break; // C
+            case '2': freq = 277.18; note = 'D'; flat = 1; break; // C#/Db
+            case '3': freq = 293.66; note = 'D'; flat = 0; break; // D
+            case 'A': freq = 311.13; note = 'E'; flat = 1; break; // D#/Eb
+            case '4': freq = 329.63; note = 'E'; flat = 0; break; // E
+            case '5': freq = 349.23; note = 'F'; flat = 0; break; // F
+            case '6': freq = 369.99; note = 'G'; flat = 1; break; // F#/Gb
+            case 'B': freq = 392.00; note = 'G'; flat = 0; break; // G
+            case '7': freq = 415.30; note = 'A'; flat = 1; break; // G#/Ab
+            case '8': freq = 440.00; note = 'A'; flat = 0; break; // A
+            case '9': freq = 466.16; note = 'B'; flat = 1; break; // A#/Bb
+            case 'C': freq = 493.88; note = 'B'; flat = 0; break; // B
+
+            // Sharp adjustment
+            case '0': freq *= 1.059454545; break;
+
+            // Octave adjustment
+            case '*': freq *= 2.0; break;  // Octave up
+            case '#': freq /= 2.0; break;  // Octave down
+            case 'D': enter = 1; break;   // Exit
+
+            default: continue; // Ignore other keys
+        }
+
+        // Set the current note to display
+        note_display = flat ? font['b'] : font[' '];
+
+        // Shift the display two positions to the left and append the note
+        // append_segments(font[' ']);  // First blank
+        append_segments(font[note]); // Note
+        append_segments(note_display); // Sharp or blank
+
+        // Set the frequency for the note
+        set_freq(0, freq);
+        nano_wait(1000000000);
+        set_freq(0, 0);
+    }
+}
+
+
+
+void update_display(char display_buffer[8]) {
+    // Iterate through the 8-character buffer
+    for (int i = 0; i < 8; ++i) {
+        if (display_buffer[i] == ' ') {
+            set_digit_segments(i, 0);
+        } else {
+            // Display the character using the font map
+            set_digit_segments(i, font[display_buffer[i]]);
+        }
+    }
+}

@@ -319,17 +319,17 @@ void init_tim6(void) {
 int main(void) {
     internal_clock();
     // Initialize the display to something interesting to get started.
-    msg[0] |= font['E'];
-    msg[1] |= font['C'];
+    msg[0] |= font['C'];
+    msg[1] |= font['D'];
     msg[2] |= font['E'];
-    msg[3] |= font[' '];
-    msg[4] |= font['3'];
-    msg[5] |= font['6'];
-    msg[6] |= font['2'];
-    msg[7] |= font[' '];
+    msg[3] |= font['F'];
+    msg[4] |= font['G'];
+    msg[5] |= font['A'];
+    msg[6] |= font['B'];
+    msg[7] |= font['C'];
 
     // Uncomment when you are ready to produce a confirmation code.
-    autotest();
+    // autotest();
     //debug here
 
     enable_ports();
@@ -351,7 +351,7 @@ int main(void) {
 #ifdef SCROLL_DISPLAY
     for(;;)
         for(int i=0; i<8; i++) {
-            print(&"Hello...Hello..."[i]);
+            print(&"C D E F "[i]);
             nano_wait(250000000);
         }
 #endif
@@ -379,7 +379,7 @@ int main(void) {
     setup_dac();
     init_tim6();
 
-#define ONE_TONE
+// #define ONE_TONE
 #ifdef ONE_TONE
     for(;;) {
         float f = getfloat();
@@ -396,6 +396,13 @@ int main(void) {
             set_freq(0,getfloat());
         if (key == 'B')
             set_freq(1,getfloat());
+    }
+#endif
+
+#define PIANO
+#ifdef PIANO
+    for(;;) {
+        play_piano();
     }
 #endif
 
