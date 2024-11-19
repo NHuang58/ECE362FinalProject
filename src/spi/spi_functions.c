@@ -13,6 +13,22 @@ void init_spi2_slow(){
     GPIOB->AFR[1] &= ~0xffff0000;
 
     // some more implementation pls
+
+    SPI2->CR1 &= ~SPI_CR1_SPE;
+    SPI2->CR1 |= SPI_CR1_MSTR
+              | SPI_CR1_BR_2
+              | SPI_CR1_BR_1
+              | SPI_CR1_BR_0
+              | SPI_CR1_SSI
+              | SPI_CR1_SSM;
+
+    SPI2->CR2 &= ~SPI_CR2_DS_3;
+    SPI2->CR2 |= SPI_CR2_DS_2
+              | SPI_CR2_DS_1
+              | SPI_CR2_DS_0
+              | SPI_CR2_FRXTH;
+
+    SPI2->CR1 |= SPI_CR1_SPE;
 }
 
 void enable_sdcard(){
@@ -31,5 +47,12 @@ void init_sdcard_io(){
 }
 
 void sdcard_io_high_speed(){
+    SPI2->CR1 &= ~SPI_CR1_SPE;
 
+    SPI2->CR1 &= ~SPI_CR1_BR_2
+              & ~SPI_CR1_BR_1
+              & ~SPI_CR1_BR_0;
+    SPI2->CR1 |= SPI_CR1_BR_0; // 48MHz / 4 (001)
+
+    SPI2->CR1 |= SPI_CR1_SPE;
 }
