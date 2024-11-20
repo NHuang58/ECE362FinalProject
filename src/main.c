@@ -212,6 +212,41 @@ void init_tim2(void) {
     TIM2->CR1 |= TIM_CR1_CEN;
 }
 
+void setup_tim1(void) {
+    // Generally the steps are similar to those in setup_tim3
+    // except we will need to set the MOE bit in BDTR. 
+    // Be sure to do so ONLY after enabling the RCC clock to TIM1.
+    
+    RCC->APB2ENR |= RCC_APB2ENR_TIM1EN;
+    RCC->AHBENR |= RCC_AHBENR_GPIOAEN;
+
+    GPIOA->MODER &= (0xff00ffff);
+
+    GPIOA->MODER |= 0xaa0000;
+
+    GPIOA->AFR[1] &= ~(0x0000ffff);
+    GPIOA->AFR[1] |= 0x2222;
+
+    TIM1->BDTR |= TIM_BDTR_MOE;
+
+    TIM1->PSC = (1 - 1);
+    TIM1->ARR = (2400 -1);
+
+    TIM1->CCMR2 &= (TIM_CCMR2_OC4M_0 | TIM_CCMR2_OC3M_0);
+    TIM1->CCMR1 &= (TIM_CCMR1_OC2M_0 | TIM_CCMR1_OC1M_0);
+
+    TIM1->CCMR2 |= TIM_CCMR2_OC4M_1 | TIM_CCMR2_OC4M_2;
+    TIM1->CCMR2 |= TIM_CCMR2_OC3M_1 | TIM_CCMR2_OC3M_2;
+    TIM1->CCMR1 |= TIM_CCMR1_OC2M_1 | TIM_CCMR1_OC2M_2;
+    TIM1->CCMR1 |= TIM_CCMR1_OC1M_1 | TIM_CCMR1_OC1M_2;
+
+    TIM1->CCMR2 |= TIM_CCMR2_OC4PE;
+
+    TIM1->CCER |= TIM_CCER_CC1E | TIM_CCER_CC2E | TIM_CCER_CC3E | TIM_CCER_CC4E;
+
+    TIM1->CR1 |= TIM_CR1_CEN;
+}
+
 
 //===========================================================================
 // Part 4: Create an analog sine wave of a specified frequency
@@ -319,6 +354,7 @@ void init_tim6(void) {
 int main(void) {
     internal_clock();
     // Initialize the display to something interesting to get started.
+    //PIANO NOTES
     msg[0] |= font['C'];
     msg[1] |= font['D'];
     msg[2] |= font['E'];
@@ -336,6 +372,13 @@ int main(void) {
     setup_dma();
     enable_dma();
     init_tim15();
+    init_tim7();
+    setup_adc();
+    init_tim2();
+    init_wavetable();
+    init_tim6();
+
+    setup_tim1();
 
     // Comment this for-loop before you demo part 1!
     // Uncomment this loop to see if "ECE 362" is displayed on LEDs.
@@ -351,7 +394,7 @@ int main(void) {
 #ifdef SCROLL_DISPLAY
     for(;;)
         for(int i=0; i<8; i++) {
-            print(&"C D E F "[i]);
+            print(&"CDEFGABC"[i]);
             nano_wait(250000000);
         }
 #endif
@@ -401,11 +444,121 @@ int main(void) {
 
 #define PIANO
 #ifdef PIANO
-    for(;;) {
+    // for(;;) {
         play_piano();
+    // }
+#endif
+
+// #define HAPPY_BIRTHDAY
+#ifdef HAPPY_BIRTHDAY
+    // Define the notes for the "Happy Birthday" song
+    struct Note {
+        char note;  // Note character ('A'-'G')
+        int flat;   // 1 for sharp, 0 for natural
+        int octave; // Octave number (0-8)
+        int duration; // Duration in milliseconds
+    };
+
+    struct Note happy_birthday_notes[] = {
+        {'C', 0, 5, 200}, // Happy
+        {'C', 0, 5, 200}, // Birthday
+        {'D', 0, 5, 400}, // to
+        {'C', 0, 5, 400}, // you
+        {'F', 0, 5, 400}, // Happy
+        {'E', 0, 5, 800}, // Birthday
+
+        {'C', 0, 5, 200}, // Happy
+        {'C', 0, 5, 200}, // Birthday
+        {'D', 0, 5, 400}, // to
+        {'C', 0, 5, 400}, // you
+        {'G', 0, 5, 400}, // Happy
+        {'F', 0, 5, 800}, // Birthday
+
+        {'C', 0, 5, 200}, // Happy
+        {'C', 0, 5, 200}, // Birthday
+        {'C', 0, 6, 400}, // dear
+        {'A', 0, 5, 400}, // [name]
+        {'F', 0, 5, 400}, // Happy
+        {'E', 0, 5, 400}, // Birthday
+        {'D', 0, 5, 800}, // to you
+    };
+
+
+    // Play each note
+    clear_display();
+
+    for (;;) {
+        for (int i = 0; i < sizeof(happy_birthday_notes) / sizeof(happy_birthday_notes[0]); i++) {
+            play_note(happy_birthday_notes[i].note, 
+                    happy_birthday_notes[i].flat, 
+                    happy_birthday_notes[i].octave);
+
+            // Wait for the specified duration
+            nano_wait(happy_birthday_notes[i].duration * 1000000);
+
+        }
+
     }
+
+    set_freq(0,0);
+#endif
+
+// #define AMONG_US
+#ifdef AMONG_US
+// Define the notes for the "Among Us" theme
+struct Note {
+    char note;   // Note character ('A'-'G')
+    int flat;    // 1 for sharp, 0 for natural
+    int octave;  // Octave number (0-8)
+    int duration; // Duration in milliseconds
+};
+
+struct Note among_us_notes[] = {
+    {'C', 0, 5, 200}, // C
+    {'D', 1, 5, 200}, // D#
+    {'E', 0, 5, 200}, // E
+    {'F', 1, 5, 200}, // F#
+    {'E', 0, 5, 200}, // E
+    {'D', 1, 5, 200}, // D#
+    {'C', 0, 5, 200}, // C
+    {'B', 1, 4, 200}, // Bb
+    {'D', 0, 5, 200}, // D
+    {'C', 0, 5, 200}, // C
+    {'G', 0, 4, 200}, // G
+    {'C', 0, 5, 400}, // C
+    {'C', 0, 5, 200}, // C
+    {'D', 1, 5, 200}, // D#
+    {'E', 0, 5, 200}, // E
+    {'F', 1, 5, 200}, // F#
+    {'E', 0, 5, 200}, // E
+    {'D', 1, 5, 200}, // D#
+    {'E', 0, 5, 200}, // E
+    {'E', 0, 5, 200}, // E
+    {'D', 0, 5, 200}, // D
+    {'C', 0, 5, 200}, // C
+    {'E', 0, 5, 200}, // E
+    {'D', 0, 5, 200}, // D
+    {'C', 0, 5, 200}, // C
+    {'B', 0, 4, 200}, // B
+};
+
+clear_display();
+
+// Play each note
+for (;;) {
+    for (int i = 0; i < sizeof(among_us_notes) / sizeof(among_us_notes[0]); i++) {
+        play_note(among_us_notes[i].note, 
+                  among_us_notes[i].flat, 
+                  among_us_notes[i].octave);
+
+        // Wait for the specified duration
+        nano_wait(among_us_notes[i].duration * 1000000);
+    }
+}
+
+set_freq(0, 0);
 #endif
 
     // Have fun.
-    dialer();
+    // dialer();
 }

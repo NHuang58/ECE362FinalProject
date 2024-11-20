@@ -1,6 +1,9 @@
+#include <math.h>
 #include "stm32f0xx.h"
 #include <string.h> // for memmove()
 #include <stdio.h> // for memmove()
+
+#define time 1050000000
 
 void nano_wait(unsigned int n) {
     asm(    "        mov r0,%0\n"
@@ -188,8 +191,6 @@ float getfloat(void)
     int digits = 0;
     int decimal = 0;
     int enter = 0;
-
-    int note = 0;
     
     clear_display();
     set_digit_segments(7, font['0']);
@@ -240,6 +241,32 @@ float getfloat(void)
     }
     return f;
 }
+
+uint8_t bcd2dec(uint8_t bcd) {
+    // Lower digit
+    uint8_t dec = bcd & 0xF;
+
+    // Higher digit
+    dec += 10 * (bcd >> 4);
+    return dec;
+}
+
+void setrgb(int rgb) {
+    uint8_t b = bcd2dec((rgb) & 0xFF);
+    uint8_t g = bcd2dec((rgb >> 8) & 0xFF);
+    uint8_t r = bcd2dec((rgb >> 16) & 0xFF);
+
+    // TODO: Assign values to TIM1->CCRx registers
+    // Remember these are all percentages
+    // Also, LEDs are on when the corresponding PWM output is low
+    // so you might want to invert the numbers. 
+    
+
+    TIM1->CCR1 = (2400 - ((2400 * r) / 99));
+    TIM1->CCR2 = (2400 - ((2400 * g) / 99));
+    TIM1->CCR3 = (2400 - ((2400 * b) / 99));
+}
+
 
 //===========================================================================
 // Part 4: Create an analog sine wave of a specified frequency
@@ -332,9 +359,11 @@ void dialer(void)
 
 void play_piano(void) {
     float freq = 440.0;         // Base frequency (A4)
-    char note = 'A';            // Initial note
     int enter = 0;              // Sentinel variable
-    int flat = 0;              // Indicates if the note is sharp
+    int flat = 0;               // Indicates if the note is sharp
+    int octave = 4;
+    int rgb = 0;
+    char note = 'A';            // Initial note
     char note_display;          // Stores the current note or note with sharp
 
     clear_display();            // Initialize the display
@@ -345,9 +374,21 @@ void play_piano(void) {
     while (!enter) {
         int key = get_keypress();
 
+        // Handle octave adjustment without playing a note
+        if (key == '*') {
+            if (octave > 0) {
+                octave--;
+            }
+            continue; // Skip playing a note
+        } else if (key == '#') {
+            if (octave < 8) {
+                octave++;
+            }
+            continue; // Skip playing a note
+        }
+
         // Determine note and frequency
         switch (key) {
-            // Notes
             case '1': freq = 261.63; note = 'C'; flat = 0; break; // C
             case '2': freq = 277.18; note = 'D'; flat = 1; break; // C#/Db
             case '3': freq = 293.66; note = 'D'; flat = 0; break; // D
@@ -358,35 +399,44 @@ void play_piano(void) {
             case 'B': freq = 392.00; note = 'G'; flat = 0; break; // G
             case '7': freq = 415.30; note = 'A'; flat = 1; break; // G#/Ab
             case '8': freq = 440.00; note = 'A'; flat = 0; break; // A
-            case '9': freq = 466.16; note = 'B'; flat = 1; break; // A#/Bb
-            case 'C': freq = 493.88; note = 'B'; flat = 0; break; // B
-
-            // Sharp adjustment
-            case '0': freq *= 1.059454545; break;
-
-            // Octave adjustment
-            case '*': freq *= 2.0; break;  // Octave up
-            case '#': freq /= 2.0; break;  // Octave down
-            case 'D': enter = 1; break;   // Exit
-
+            case '9': freq = 466.16; note = '8'; flat = 1; break; // A#/Bb
+            case 'C': freq = 493.88; note = '8'; flat = 0; break; // B
+            
+            case '0': freq = 440.00; note = ' '; octave = 4; flat = 0; break;
+            case 'D': freq = 0     ; note = '0'; flat = 0; break;  // Turn off
             default: continue; // Ignore other keys
+        }
+
+        switch (octave) {
+            case 0 : rgb = 332211; break;
+            case 1 : rgb = 221144; break;
+            case 2 : rgb = 554433; break;
+            case 3 : rgb = 440000; break;
+            case 4 : rgb = 004400; break;
+            case 5 : rgb = 000044; break;
+            case 6 : rgb = 224477; break;
+            case 7 : rgb = 112233; break;
+            default: rgb = 000000; break;
         }
 
         // Set the current note to display
         note_display = flat ? font['b'] : font[' '];
 
         // Shift the display two positions to the left and append the note
-        // append_segments(font[' ']);  // First blank
-        append_segments(font[note]); // Note
-        append_segments(note_display); // Sharp or blank
+        append_segments(font[note]);       // Note
+        append_segments(note_display);    // Sharp or blank
 
+        // Set the rgb LED for the octave
         // Set the frequency for the note
-        set_freq(0, freq);
-        nano_wait(1000000000);
+        setrgb(rgb);
+        set_freq(0, freq * pow(2, (octave - 4)));
+
+        nano_wait(time);
+        
+        setrgb(0);
         set_freq(0, 0);
     }
 }
-
 
 
 void update_display(char display_buffer[8]) {
@@ -396,7 +446,42 @@ void update_display(char display_buffer[8]) {
             set_digit_segments(i, 0);
         } else {
             // Display the character using the font map
-            set_digit_segments(i, font[display_buffer[i]]);
+            set_digit_segments(i, display_buffer[i]);
         }
     }
+}
+
+void play_note(char note, int flat, int octave) {
+    float base_freq;
+    
+    // Determine the base frequency of the note
+    switch (note) {
+        case 'C': base_freq = 261.63; break; // C
+        case 'D': base_freq = 293.66; break; // D
+        case 'E': base_freq = 329.63; break; // E
+        case 'F': base_freq = 349.23; break; // F
+        case 'G': base_freq = 392.00; break; // G
+        case 'A': base_freq = 440.00; break; // A
+        case 'B': base_freq = 493.88; break; // B
+        default: return; // Invalid note
+    }
+
+    // Adjust frequency for sharp/flat
+    if (flat) {
+        base_freq *= pow(2.0, 1.0 / 12.0); // Sharpen the note by a semitone
+    }
+
+    // Adjust frequency for the octave
+    float adjusted_freq = base_freq * pow(2.0, (octave - 4));
+
+    // Play the note
+    set_freq(0, adjusted_freq);
+    append_segments(font[note]);
+    append_segments(font[' ']);
+
+    // Wait for a short duration (e.g., 500ms)
+    nano_wait(500000000);
+
+    // Turn off the sound
+    set_freq(0, 0);
 }
