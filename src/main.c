@@ -385,7 +385,7 @@ void init_spi1_slow(){
     GPIOA->MODER |= (0b10 << (5 * 2)) | (0b10 << (7 * 2));    // Set PA5, PA7 to AF mode
 
     GPIOA->AFR[0] &= ~((0xF << (5 * 4)) | (0xF << (7 * 4)));  // Clear AFR for PA5, PA7
-    GPIOA->AFR[0] |= (0x5 << (5 * 4)) | (0x5 << (7 * 4));  
+    GPIOA->AFR[0] |= (0x0 << (5 * 4)) | (0x0 << (7 * 4));  
 
     // some more implementation pls
 
