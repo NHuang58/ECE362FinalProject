@@ -1,10 +1,12 @@
+#include "stm32f0xx.h"
+
 // Receive a character via SPI2
-char SPI2_Receive_Char(void) {
+ char SPI2_Receive_Char(void) {
     while (!(SPI2->SR & SPI_SR_RXNE));  // Wait for RXNE flag (Receive buffer not empty)
     return (char)(SPI2->DR);  // Return received character from the data register
 }
-
-void SPI2_Init(void) {
+/*
+ void SPI2_Init(void) {
     // Enable clock to SPI2 and GPIOB (or appropriate GPIO port)
     RCC->APB1ENR |= RCC_APB1ENR_SPI2EN;   // Enable SPI2 clock
     RCC->AHB1ENR |= RCC_AHB1ENR_GPIOBEN;  // Enable GPIOB clock (for pins PB13, PB14, PB15)
@@ -20,4 +22,4 @@ void SPI2_Init(void) {
               | SPI_CR1_SSI   // Internal slave select
               | SPI_CR1_SPE;  // Enable SPI
 }
-
+*/

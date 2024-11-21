@@ -78,11 +78,13 @@ static void tft_reg_select(int val)
 //============================================================================
 // Wait for n nanoseconds. (Maximum: 4.294 seconds)
 //============================================================================
+/*
 static inline void nano_wait(unsigned int n) {
     asm(    "        mov r0,%0\n"
             "repeat: sub r0,#83\n"
             "        bgt repeat\n" : : "r"(n) : "r0", "cc");
 }
+*/
 
 void LCD_Reset(void)
 {
@@ -353,10 +355,14 @@ void LCD_Init(void (*reset)(int), void (*select)(int), void (*reg_select)(int))
     lcddev.select(0);
 }
 
+
+/*
 __attribute((weak)) void init_lcd_spi(void)
 {
     printf("init_lcd_spi() not defined.");
 }
+*/
+
 
 void LCD_Setup() {
     init_lcd_spi();

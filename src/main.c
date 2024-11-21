@@ -18,12 +18,13 @@ const char* username = "huan1811";
 */ 
 
 #include "stm32f0xx.h"
+#include "spi_functions.h"
 #include <math.h>   // for M_PI
 #include <stdint.h>
 #include <stdio.h>
 
 void nano_wait(int);
-void autotest();
+
 
 //=============================================================================
 // Part 1: 7-segment display update with DMA
@@ -367,7 +368,7 @@ int main(void) {
     // Uncomment when you are ready to produce a confirmation code.
     // autotest();
     //debug here
-
+/*
     enable_ports();
     setup_dma();
     enable_dma();
@@ -379,7 +380,15 @@ int main(void) {
     init_tim6();
 
     setup_tim1();
+*/
 
+
+#define TEST_TFT
+#ifdef TEST_TFT
+    Amir_init_lcd_spi();  
+    Amir_init_lcd();      
+    Amir_test_lcd();   
+#endif
     // Comment this for-loop before you demo part 1!
     // Uncomment this loop to see if "ECE 362" is displayed on LEDs.
     
@@ -442,7 +451,7 @@ int main(void) {
     }
 #endif
 
-#define PIANO
+// #define PIANO
 #ifdef PIANO
     // for(;;) {
         play_piano();
