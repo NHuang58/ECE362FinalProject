@@ -416,6 +416,8 @@ void play_piano(void) {
             default: continue; // Ignore other keys
         }
 
+        drawNote(noteToSend);
+
         switch (octave) {
             case 0 : rgb = 332211; break;
             case 1 : rgb = 221144; break;
