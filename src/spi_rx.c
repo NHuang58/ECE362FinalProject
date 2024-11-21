@@ -1,20 +1,23 @@
-void SPI1_Init(void) {
-    // Enable clock to SPI1 and GPIOA (or appropriate GPIO port)
-    RCC->APB2ENR |= RCC_APB2ENR_SPI1EN;   // Enable SPI1 clock
-    RCC->AHBENR |= RCC_AHBENR_GPIOAEN;  // Enable GPIOA clock (for pins PA5, PA6, PA7)
-
-    // Set PA5, PA6, PA7 to alternate function for SPI (SCK, MISO, MOSI)
-    GPIOA->MODER |= (0x2 << 2*5) | (0x2 << 2*6) | (0x2 << 2*7);  // Alternate function mode
-    GPIOA->AFR[0] |= (0x5 << 4*5) | (0x5 << 4*6) | (0x5 << 4*7); // Set AF5 for SPI1
-
-    // SPI configuration
-    SPI1->CR1 |= SPI_CR1_MSTR   // Master mode
-              |  SPI_CR1_BR_0   // Baud rate (adjust as needed)
-              |  SPI_CR1_SSI   // Internal slave select
-              |  SPI_CR1_SPE;  // Enable SPI
+// Receive a character via SPI2
+char SPI2_Receive_Char(void) {
+    while (!(SPI2->SR & SPI_SR_RXNE));  // Wait for RXNE flag (Receive buffer not empty)
+    return (char)(SPI2->DR);  // Return received character from the data register
 }
 
-char SPI1_Receive_Char(void) {
-    while (!(SPI1->SR & SPI_SR_RXNE));  // Wait for RXNE flag (Receive buffer not empty)
-    return (char)(SPI1->DR);  // Return received character from the data register
+void SPI2_Init(void) {
+    // Enable clock to SPI2 and GPIOB (or appropriate GPIO port)
+    RCC->APB1ENR |= RCC_APB1ENR_SPI2EN;   // Enable SPI2 clock
+    RCC->AHB1ENR |= RCC_AHB1ENR_GPIOBEN;  // Enable GPIOB clock (for pins PB13, PB14, PB15)
+
+    // Set PB13, PB14, PB15 to alternate function for SPI2 (SCK, MISO, MOSI)
+    GPIOB->MODER |= (0x2 << 2*13) | (0x2 << 2*14) | (0x2 << 2*15);  // Alternate function mode
+    GPIOB->AFR[1] |= (0x5 << 4*13) | (0x5 << 4*14) | (0x5 << 4*15); // Set AF5 for SPI2
+
+    // SPI2 configuration
+    SPI2->CR1 |= SPI_CR1_MSTR   // Master mode (if SPI2 is the master)
+              | SPI_CR1_BR_0   // Baud rate (adjust as needed)
+              | SPI_CR1_MSBFirst  // MSB first
+              | SPI_CR1_SSI   // Internal slave select
+              | SPI_CR1_SPE;  // Enable SPI
 }
+
