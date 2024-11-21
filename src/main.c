@@ -405,11 +405,11 @@ void init_spi1_slow(){
 }
 
 void enable_sdcard(){
-    GPIOB->BSRR |= GPIO_BSRR_BR_2;
+    // GPIOB->BSRR |= GPIO_BSRR_BR_2;
 }
 
 void disable_sdcard(){
-    GPIOB->BSRR |= GPIO_BSRR_BS_2;
+    // GPIOB->BSRR |= GPIO_BSRR_BS_2;
 }
 
 void init_sdcard_io(){
