@@ -371,68 +371,68 @@ void init_tim6(void) {
 //     while (!(USART2->ISR & USART_ISR_REACK)); // Wait for RX ready
 // }
 
-void init_SPI2_slow(){
+void init_spi1_slow(){
     // SPI pins:
-    // PB12 -> CS (NSS)
-    // PB13 -> SCK
-    // PB14 -> SDO (MISO)
-    // PB15 -> SDI (MOSI)
-    RCC->APB1ENR |= RCC_APB1ENR_SPI2EN;
+    // PB2 -> CS (NSS)
+    // PB3 -> SCK
+    // PB4 -> SDO (MISO)
+    // PB5 -> SDI (MOSI)
+    RCC->APB2ENR |= RCC_APB2ENR_SPI1EN;
 
-    GPIOB->MODER &= ~0xff000000;
-    GPIOB->MODER |= 0xaa000000;
-    GPIOB->AFR[1] &= ~0xffff0000;
+    GPIOB->MODER &= ~0xff0;
+    GPIOB->MODER |= 0xa90;
+    GPIOB->AFR[0] &= ~0xfff000;
 
     // some more implementation pls
 
-    SPI2->CR1 &= ~SPI_CR1_SPE;
-    SPI2->CR1 |= SPI_CR1_MSTR
+    SPI1->CR1 &= ~SPI_CR1_SPE;
+    SPI1->CR1 |= SPI_CR1_MSTR
               | SPI_CR1_SSI
               | SPI_CR1_SSM;
-    SPI2->CR1 &= ~(SPI_CR1_BR);
+    SPI1->CR1 &= ~(SPI_CR1_BR);
 
-    SPI2->CR2 &= ~SPI_CR2_DS_3;
-    SPI2->CR2 |= SPI_CR2_DS_2
+    SPI1->CR2 &= ~SPI_CR2_DS_3;
+    SPI1->CR2 |= SPI_CR2_DS_2
               | SPI_CR2_DS_1
               | SPI_CR2_DS_0
               | SPI_CR2_FRXTH;
 
-    SPI2->CR1 |= SPI_CR1_SPE;
+    SPI1->CR1 |= SPI_CR1_SPE;
 }
 
 void enable_sdcard(){
-    GPIOB->BSRR |= GPIO_BSRR_BR_11;
+    GPIOB->BSRR |= GPIO_BSRR_BR_2;
 }
 
 void disable_sdcard(){
-    GPIOB->BSRR |= GPIO_BSRR_BS_11;
+    GPIOB->BSRR |= GPIO_BSRR_BS_2;
 }
 
 void init_sdcard_io(){
-    init_SPI2_slow();
-    GPIOB->MODER &= ~0x3 << 11;
-    GPIOB->MODER |= 0x1 << 11;
+    init_spi1_slow();
+    GPIOB->MODER &= ~0x30;
+    GPIOB->MODER |= 0x10;
     disable_sdcard();
 }
 
 void sdcard_io_high_speed(){
-    SPI2->CR1 &= ~SPI_CR1_SPE;
+    SPI1->CR1 &= ~SPI_CR1_SPE;
 
-    SPI2->CR1 &= ~SPI_CR1_BR_2
+    SPI1->CR1 &= ~SPI_CR1_BR_2
               & ~SPI_CR1_BR_1
               & ~SPI_CR1_BR_0;
-    SPI2->CR1 |= SPI_CR1_BR_0; // 48MHz / 4 (001)
+    SPI1->CR1 |= SPI_CR1_BR_0; // 48MHz / 4 (001)
 
-    SPI2->CR1 |= SPI_CR1_SPE;
+    SPI1->CR1 |= SPI_CR1_SPE;
 }
 
 void init_lcd_spi(){
     RCC->AHBENR |= RCC_AHBENR_GPIOBEN;
 
-    GPIOB->MODER &= ~0x30000000;
-    GPIOB->MODER |= 0x10000000;
+    GPIOB->MODER &= ~0x30c30000;
+    GPIOB->MODER |= 0x10410000;
 
-    init_SPI2_slow();
+    init_spi1_slow();
     sdcard_io_high_speed();
 }
 
