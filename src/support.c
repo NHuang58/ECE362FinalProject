@@ -2,6 +2,7 @@
 #include "stm32f0xx.h"
 #include <string.h> // for memmove()
 #include <stdio.h> // for memmove()
+#include "main.h"
 
 #define time 1050000000
 
@@ -357,14 +358,6 @@ void dialer(void)
     }
 }
 
-// void USART2_Transmit(char *data) {
-//     while (*data) {
-//         while (!(USART2->ISR & USART_ISR_TXE)); // Wait until TX buffer is empty
-//         USART2->TDR = *data++; // Transmit character
-//     }
-//     while (!(USART2->ISR & USART_ISR_TC)); // Wait until transmission is complete
-// }
-
 void play_piano(void) {
     float freq = 440.0;         // Base frequency (A4)
     int enter = 0;              // Sentinel variable
@@ -416,7 +409,6 @@ void play_piano(void) {
             default: continue; // Ignore other keys
         }
 
-        drawNote(noteToSend);
 
         switch (octave) {
             case 0 : rgb = 332211; break;
@@ -434,6 +426,7 @@ void play_piano(void) {
         note_display = flat ? font['b'] : font[' '];
 
         // Shift the display two positions to the left and append the note
+        drawNote(noteToSend);
         append_segments(font[note]);       // Note
         append_segments(note_display);    // Sharp or blank
 

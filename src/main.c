@@ -371,7 +371,7 @@ void init_tim6(void) {
 //     while (!(USART2->ISR & USART_ISR_REACK)); // Wait for RX ready
 // }
 
-void init_spi2_slow(){
+void init_SPI2_slow(){
     // SPI pins:
     // PB12 -> CS (NSS)
     // PB13 -> SCK
@@ -550,7 +550,7 @@ int main(void) {
 
     setup_tim1();
 
-    USART2_Init(9600);
+    // USART2_Init(9600);
     
     // Comment this for-loop before you demo part 1!
     // Uncomment this loop to see if "ECE 362" is displayed on LEDs.
