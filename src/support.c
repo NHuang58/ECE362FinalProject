@@ -402,7 +402,7 @@ void play_piano(void) {
             }
             continue; // Skip playing a note
         } else if (key == '#') {
-            if (octave < 8) {
+            if (octave < 7) {
                 octave++;
             }
             continue; // Skip playing a note

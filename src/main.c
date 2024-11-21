@@ -457,6 +457,7 @@ void drawNote(char note){
         sharp = 1;
         break;
         case 'a': shift = 30;
+        sharp = 0;
         break;
         case 'A': shift = 30;
         sharp = 1;
