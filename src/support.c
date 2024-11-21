@@ -357,6 +357,14 @@ void dialer(void)
     }
 }
 
+// void USART2_Transmit(char *data) {
+//     while (*data) {
+//         while (!(USART2->ISR & USART_ISR_TXE)); // Wait until TX buffer is empty
+//         USART2->TDR = *data++; // Transmit character
+//     }
+//     while (!(USART2->ISR & USART_ISR_TC)); // Wait until transmission is complete
+// }
+
 void play_piano(void) {
     float freq = 440.0;         // Base frequency (A4)
     int enter = 0;              // Sentinel variable
@@ -365,6 +373,7 @@ void play_piano(void) {
     int rgb = 0;
     char note = 'A';            // Initial note
     char note_display;          // Stores the current note or note with sharp
+    char noteToSend = 'A';
 
     clear_display();            // Initialize the display
     for (int i = 0; i < 8; i++) {
@@ -389,21 +398,21 @@ void play_piano(void) {
 
         // Determine note and frequency
         switch (key) {
-            case '1': freq = 261.63; note = 'C'; flat = 0; break; // C
-            case '2': freq = 277.18; note = 'D'; flat = 1; break; // C#/Db
-            case '3': freq = 293.66; note = 'D'; flat = 0; break; // D
-            case 'A': freq = 311.13; note = 'E'; flat = 1; break; // D#/Eb
-            case '4': freq = 329.63; note = 'E'; flat = 0; break; // E
-            case '5': freq = 349.23; note = 'F'; flat = 0; break; // F
-            case '6': freq = 369.99; note = 'G'; flat = 1; break; // F#/Gb
-            case 'B': freq = 392.00; note = 'G'; flat = 0; break; // G
-            case '7': freq = 415.30; note = 'A'; flat = 1; break; // G#/Ab
-            case '8': freq = 440.00; note = 'A'; flat = 0; break; // A
-            case '9': freq = 466.16; note = '8'; flat = 1; break; // A#/Bb
-            case 'C': freq = 493.88; note = '8'; flat = 0; break; // B
+            case '1': freq = 261.63; note = 'C'; flat = 0; noteToSend = 'c'; break; // C
+            case '2': freq = 277.18; note = 'D'; flat = 1; noteToSend = 'C'; break; // C#/Db
+            case '3': freq = 293.66; note = 'D'; flat = 0; noteToSend = 'd'; break; // D
+            case 'A': freq = 311.13; note = 'E'; flat = 1; noteToSend = 'D'; break; // D#/Eb
+            case '4': freq = 329.63; note = 'E'; flat = 0; noteToSend = 'e'; break; // E
+            case '5': freq = 349.23; note = 'F'; flat = 0; noteToSend = 'f'; break; // F
+            case '6': freq = 369.99; note = 'G'; flat = 1; noteToSend = 'F'; break; // F#/Gb
+            case 'B': freq = 392.00; note = 'G'; flat = 0; noteToSend = 'g'; break; // G
+            case '7': freq = 415.30; note = 'A'; flat = 1; noteToSend = 'G'; break; // G#/Ab
+            case '8': freq = 440.00; note = 'A'; flat = 0; noteToSend = 'a'; break; // A
+            case '9': freq = 466.16; note = '8'; flat = 1; noteToSend = 'A'; break; // A#/Bb
+            case 'C': freq = 493.88; note = '8'; flat = 0; noteToSend = 'b'; break; // B
             
             case '0': freq = 440.00; note = ' '; octave = 4; flat = 0; break;
-            case 'D': freq = 0     ; note = '0'; flat = 0; break;  // Turn off
+            case 'D': freq = 0     ; note = '0'; enter  = 1; flat = 0; break;  // Turn off
             default: continue; // Ignore other keys
         }
 
@@ -426,9 +435,13 @@ void play_piano(void) {
         append_segments(font[note]);       // Note
         append_segments(note_display);    // Sharp or blank
 
+        // Send the Char to the TFT
         // Set the rgb LED for the octave
         // Set the frequency for the note
+
+        // USART2_Transmit(noteToSend);
         setrgb(rgb);
+
         set_freq(0, freq * pow(2, (octave - 4)));
 
         nano_wait(time);
@@ -437,6 +450,7 @@ void play_piano(void) {
         set_freq(0, 0);
     }
 }
+
 
 
 void update_display(char display_buffer[8]) {

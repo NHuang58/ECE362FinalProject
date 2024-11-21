@@ -16,7 +16,7 @@ const char* username = "huan1811";
 
 /******************************************************************************
 */ 
-
+// #include "stm32f4xx.h"
 #include "stm32f0xx.h"
 #include <math.h>   // for M_PI
 #include <stdint.h>
@@ -349,6 +349,28 @@ void init_tim6(void) {
 }
 
 //============================================================================
+// MASTER
+//============================================================================
+// void USART2_Init(uint32_t baud_rate) {
+//     // Enable the clock for GPIOA and USART2
+//     RCC->AHBENR |= RCC_AHBENR_GPIOAEN;   // Enable GPIOA clock
+//     RCC->APB1ENR |= RCC_APB1ENR_USART2EN; // Enable USART2 clock
+
+//     // Configure PA2 (TX) and PA3 (RX) as alternate function
+//     GPIOA->MODER &= ~(GPIO_MODER_MODER2 | GPIO_MODER_MODER3); // Clear mode
+//     GPIOA->MODER |= GPIO_MODER_MODER2_1 | GPIO_MODER_MODER3_1; // Set to AF
+//     GPIOA->AFR[0] |= (1 << GPIO_AFRL_AFSEL2_Pos) | (1 << GPIO_AFRL_AFSEL3_Pos); // Set AF1 for PA2 and PA3
+
+//     // Configure USART2
+//     USART2->BRR = SystemCoreClock / baud_rate; // Set baud rate
+//     USART2->CR1 = USART_CR1_TE | USART_CR1_RE | USART_CR1_UE; // Enable TX, RX, and USART
+
+//     // Wait for USART to be ready
+//     while (!(USART2->ISR & USART_ISR_TEACK)); // Wait for TX ready
+//     while (!(USART2->ISR & USART_ISR_REACK)); // Wait for RX ready
+// }
+
+//============================================================================
 // All the things you need to test your subroutines.
 //============================================================================
 int main(void) {
@@ -364,6 +386,8 @@ int main(void) {
     msg[6] |= font['B'];
     msg[7] |= font['C'];
 
+
+    // nano_wait(2500000000);
     // Uncomment when you are ready to produce a confirmation code.
     // autotest();
     //debug here
@@ -380,6 +404,8 @@ int main(void) {
 
     setup_tim1();
 
+    USART2_Init(9600);
+    
     // Comment this for-loop before you demo part 1!
     // Uncomment this loop to see if "ECE 362" is displayed on LEDs.
     
