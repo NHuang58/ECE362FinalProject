@@ -377,11 +377,15 @@ void init_spi1_slow(){
     // PB3 -> SCK
     // PB4 -> SDO (MISO)
     // PB5 -> SDI (MOSI)
-    RCC->APB2ENR |= RCC_APB2ENR_SPI1EN;
+    RCC->APB2ENR |= RCC_APB2ENR_SPI1EN; // Enable SPI1 clock
+    RCC->AHBENR |= RCC_AHBENR_GPIOAEN; // Enable GPIOA clock
 
-    GPIOB->MODER &= ~0xff0;
-    GPIOB->MODER |= 0xa90;
-    GPIOB->AFR[0] &= ~0xfff000;
+    // Step 2: Configure GPIOA pins as Alternate Function for SPI
+    GPIOA->MODER &= ~((0b11 << (5 * 2)) | (0b11 << (7 * 2))); // Clear mode for PA5, PA7
+    GPIOA->MODER |= (0b10 << (5 * 2)) | (0b10 << (7 * 2));    // Set PA5, PA7 to AF mode
+
+    GPIOA->AFR[0] &= ~((0xF << (5 * 4)) | (0xF << (7 * 4)));  // Clear AFR for PA5, PA7
+    GPIOA->AFR[0] |= (0x5 << (5 * 4)) | (0x5 << (7 * 4));  
 
     // some more implementation pls
 
