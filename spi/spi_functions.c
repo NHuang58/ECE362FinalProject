@@ -1,5 +1,6 @@
 #include "stm32f0xx.h"
 
+
 void init_spi2_slow(){
     // SPI pins:
     // PB12 -> CS (NSS)
