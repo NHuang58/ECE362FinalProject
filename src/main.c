@@ -371,7 +371,7 @@ void init_tim6(void) {
 //     while (!(USART2->ISR & USART_ISR_REACK)); // Wait for RX ready
 // }
 
-void init_spi2_slow(){
+void init_SPI2_slow(){
     // SPI pins:
     // PB12 -> CS (NSS)
     // PB13 -> SCK
