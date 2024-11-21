@@ -1,43 +1,20 @@
-void init_uart_receiver(void) {
-    // Enable USART1 and GPIOA clocks
-    RCC->APB2ENR |= RCC_APB2ENR_USART1EN;  // Enable USART1 clock
-    RCC->AHBENR |= RCC_AHBENR_GPIOAEN;      // Enable GPIOA clock
+void SPI1_Init(void) {
+    // Enable clock to SPI1 and GPIOA (or appropriate GPIO port)
+    RCC->APB2ENR |= RCC_APB2ENR_SPI1EN;   // Enable SPI1 clock
+    RCC->AHBENR |= RCC_AHBENR_GPIOAEN;  // Enable GPIOA clock (for pins PA5, PA6, PA7)
 
-    // Configure PA10 as USART1 RX (Alternate Function)
-    GPIOA->MODER &= ~GPIO_MODER_MODE10;           // Clear the current mode for PA10
-    GPIOA->MODER |= GPIO_MODER_MODE10_1;          // Set PA10 to alternate function mode
-    GPIOA->AFR[1] &= ~GPIO_AFRH_AFSEL10;          // Clear the alternate function bits for PA10
-    GPIOA->AFR[1] |= 0x01;                       // Set PA10 to USART1_RX (AF1)
+    // Set PA5, PA6, PA7 to alternate function for SPI (SCK, MISO, MOSI)
+    GPIOA->MODER |= (0x2 << 2*5) | (0x2 << 2*6) | (0x2 << 2*7);  // Alternate function mode
+    GPIOA->AFR[0] |= (0x5 << 4*5) | (0x5 << 4*6) | (0x5 << 4*7); // Set AF5 for SPI1
 
-    // Set the baud rate (assuming 48 MHz system clock)
-    USART1->BRR = 0x683;  // Baud rate 9600
-
-    // Configure USART1: 8 data bits, no parity, 1 stop bit
-    USART1->CR1 &= ~USART_CR1_M;       // 8 data bits
-    USART1->CR1 &= ~USART_CR1_PS;      // No parity
-    USART1->CR1 &= ~USART_CR1_OVER8;   // 16x oversampling mode
-    USART1->CR2 &= ~USART_CR2_STOP;    // 1 stop bit
-
-    // Enable USART1 for receiving
-    USART1->CR1 |= USART_CR1_RE;      // Enable receiver
-    USART1->CR1 |= USART_CR1_UE;      // Enable USART1
+    // SPI configuration
+    SPI1->CR1 |= SPI_CR1_MSTR   // Master mode
+              |  SPI_CR1_BR_0   // Baud rate (adjust as needed)
+              |  SPI_CR1_SSI   // Internal slave select
+              |  SPI_CR1_SPE;  // Enable SPI
 }
 
-// Function to receive a character
-char receive_char(void) {
-    while (!(USART1->SR & USART_SR_RXNE));  // Wait until data is received
-    return (char)(USART1->DR);  // Return the received character
-}
-
-int main(void) {
-    // Initialize USART receiver
-    init_uart_receiver();
-
-    while (1) {
-        // Receive a character from USART1
-        char received_char = receive_char();
-
-        // Process the received character (for example, echo it)
-        // Here we can either process it or store it
-    }
+char SPI1_Receive_Char(void) {
+    while (!(SPI1->SR & SPI_SR_RXNE));  // Wait for RXNE flag (Receive buffer not empty)
+    return (char)(SPI1->DR);  // Return received character from the data register
 }
