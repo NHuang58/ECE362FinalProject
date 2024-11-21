@@ -24,10 +24,10 @@ __attribute((weak)) void disable_sdcard(void) {
 // Make sure the receive FIFO of the SPI interface is clear.
 void spi_clear_rxfifo(SPI_TypeDef *s)
 {
-    while(s->SR & SPI_SR_RXNE) {
-        // clear the read buffer
-        int __attribute__((unused))dummy = *(uint8_t*)&(s->DR);
-    }
+    // while(s->SR & SPI_SR_RXNE) {
+    //     // clear the read buffer
+    //     int __attribute__((unused))dummy = *(uint8_t*)&(s->DR);
+    // }
 }
 
 // Write a single byte to the SD card interface and read a value
