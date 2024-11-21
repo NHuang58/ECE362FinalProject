@@ -21,6 +21,7 @@ const char* username = "huan1811";
 #include <math.h>   // for M_PI
 #include <stdint.h>
 #include <stdio.h>
+#include "lcd.h"
 
 void nano_wait(int);
 void autotest();
