@@ -381,11 +381,19 @@ void init_spi1_slow(){
 }
 
 void enable_sdcard(){
-    // GPIOB->BSRR |= GPIO_BSRR_BR_2;
+    GPIOB->BSRR |= GPIO_BSRR_BR_2;
 }
 
 void disable_sdcard(){
-    // GPIOB->BSRR |= GPIO_BSRR_BS_2;
+    GPIOB->BSRR |= GPIO_BSRR_BS_2;
+}
+
+void enable_tftlcd(){
+    GPIOB->BSRR |= GPIO_BSRR_BS_8;
+}
+
+void disable_tftlcd(){
+    GPIOB->BSRR |= GPIO_BSRR_BR_8;
 }
 
 void init_sdcard_io(){

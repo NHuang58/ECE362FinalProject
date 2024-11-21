@@ -360,6 +360,10 @@ void dialer(void)
     }
 }
 
+#include "ff.h"
+
+extern FATFS fs_storage;
+
 void play_piano(void) {
     float freq = 0.0;         // Base frequency (A4)
     int enter = 0;              // Sentinel variable
@@ -369,6 +373,18 @@ void play_piano(void) {
     char note = 'A';            // Initial note
     char note_display;          // Stores the current note or note with sharp
     char noteToSend = 'A';
+
+    // Opening file on SD Card via SPI
+    disable_tftlcd();
+    enable_sdcard();
+    FATFS *fs = &fs_storage;
+    f_mount(fs, "", 1);
+    FIL file;
+    char string[] = "notes.txt";
+    UINT wlen;
+    f_open(&file, string, FA_WRITE|FA_OPEN_APPEND);
+    disable_sdcard();
+    enable_tftlcd();
 
     clear_display();            // Initialize the display
     for (int i = 0; i < 8; i++) {
@@ -429,7 +445,15 @@ void play_piano(void) {
         note_display = flat ? font['b'] : font[' '];
 
         // Shift the display two positions to the left and append the note
+        
         drawNote(noteToSend);
+
+        disable_tftlcd();
+        enable_sdcard(); 
+        f_write(&file, &noteToSend, 1, &wlen);
+        disable_sdcard();
+        enable_tftlcd();
+
         append_segments(font[note]);       // Note
         append_segments(note_display);    // Sharp or blank
 
@@ -446,6 +470,7 @@ void play_piano(void) {
         setrgb(0);
         // set_freq(0, 0);
     }
+    f_close(&file);
 }
 
 
