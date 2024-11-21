@@ -1,68 +1,78 @@
 #include "stm32f0xx.h"
+#include "lcd.h"
 
 
-void init_spi2_slow(){
-    // SPI pins:
-    // PB12 -> CS (NSS)
-    // PB13 -> SCK
-    // PB14 -> SDO (MISO)
-    // PB15 -> SDI (MOSI)
+
+// Seven Segment Display (SPI2)
+// Uses PB12 (CS), PB13 (SCK), PB15 (MOSI)
+
+// LCD Display (SPI1)
+// Uses PA5 (SCK), PA7 (MOSI)
+// PB8 (CS), PB11 (RESET), PB14 (DC)
+
+// SD Card (SPI1)
+// Can share SPI1 with LCD but needs its own CS pin
+// Uses PA5 (SCK), PA7 (MOSI), PA6 (MISO)
+// Need to add a new CS pin for SD card, e.g., PB6
+
+
+void enable_sdcard() {
+    GPIOB->BSRR = GPIO_BSRR_BR_9;
+}
+
+void disable_sdcard() {
+    GPIOB->BSRR = GPIO_BSRR_BS_9;
+}
+
+void sdcard_io_high_speed() {
+    SPI2->CR1 &= ~SPI_CR1_SPE;
+    SPI2->CR1 &= ~(SPI_CR1_BR_2 | SPI_CR1_BR_1 | SPI_CR1_BR_0);
+    SPI2->CR1 |= SPI_CR1_BR_0;
+    SPI2->CR1 |= SPI_CR1_SPE;
+}
+
+void init_lcd_spi() {
+    RCC->APB2ENR |= RCC_APB2ENR_SPI1EN;
     RCC->APB1ENR |= RCC_APB1ENR_SPI2EN;
-
-    GPIOB->MODER &= ~0xff000000;
-    GPIOB->MODER |= 0xaa000000;
-    GPIOB->AFR[1] &= ~0xffff0000;
-
-    // some more implementation pls
-
-    SPI2->CR1 &= ~SPI_CR1_SPE;
-    SPI2->CR1 |= SPI_CR1_MSTR
-              | SPI_CR1_SSI
-              | SPI_CR1_SSM;
-    SPI2->CR1 &= ~(SPI_CR1_BR);
-
-    SPI2->CR2 &= ~SPI_CR2_DS_3;
-    SPI2->CR2 |= SPI_CR2_DS_2
-              | SPI_CR2_DS_1
-              | SPI_CR2_DS_0
-              | SPI_CR2_FRXTH;
-
-    SPI2->CR1 |= SPI_CR1_SPE;
-}
-
-void enable_sdcard(){
-    GPIOB->BSRR |= GPIO_BSRR_BR_11;
-}
-
-void disable_sdcard(){
-    GPIOB->BSRR |= GPIO_BSRR_BS_11;
-}
-
-void init_sdcard_io(){
-    init_SPI2_slow();
-    GPIOB->MODER &= ~0x3 << 11;
-    GPIOB->MODER |= 0x1 << 11;
-    disable_sdcard();
-}
-
-void sdcard_io_high_speed(){
-    SPI2->CR1 &= ~SPI_CR1_SPE;
-
-    SPI2->CR1 &= ~SPI_CR1_BR_2
-              & ~SPI_CR1_BR_1
-              & ~SPI_CR1_BR_0;
-    SPI2->CR1 |= SPI_CR1_BR_0; // 48MHz / 4 (001)
-
-    SPI2->CR1 |= SPI_CR1_SPE;
-}
-
-void init_lcd_spi(){
+    RCC->AHBENR |= RCC_AHBENR_GPIOAEN;
     RCC->AHBENR |= RCC_AHBENR_GPIOBEN;
 
-    GPIOB->MODER &= ~0x30000000;
-    GPIOB->MODER |= 0x10000000;
+    GPIOA->MODER &= ~(GPIO_MODER_MODER5 | GPIO_MODER_MODER7);
+    GPIOA->MODER |= (GPIO_MODER_MODER5_1 | GPIO_MODER_MODER7_1);
+    GPIOA->AFR[0] &= ~(GPIO_AFRL_AFSEL5 | GPIO_AFRL_AFSEL7);
+    GPIOA->OSPEEDR |= (GPIO_OSPEEDR_OSPEEDR5 | GPIO_OSPEEDR_OSPEEDR7);
 
-    init_SPI2_slow();
+    GPIOB->MODER &= ~(GPIO_MODER_MODER8 | GPIO_MODER_MODER11 | GPIO_MODER_MODER14);
+    GPIOB->MODER |= (GPIO_MODER_MODER8_0 | GPIO_MODER_MODER11_0 | GPIO_MODER_MODER14_0);
+    GPIOB->OSPEEDR |= (GPIO_OSPEEDR_OSPEEDR8 | GPIO_OSPEEDR_OSPEEDR11 | GPIO_OSPEEDR_OSPEEDR14);
+    GPIOB->OTYPER &= ~(GPIO_OTYPER_OT_8 | GPIO_OTYPER_OT_11 | GPIO_OTYPER_OT_14);
+    GPIOB->PUPDR &= ~(GPIO_PUPDR_PUPDR8 | GPIO_PUPDR_PUPDR11 | GPIO_PUPDR_PUPDR14);
+    GPIOB->PUPDR |= (GPIO_PUPDR_PUPDR8_0 | GPIO_PUPDR_PUPDR11_0 | GPIO_PUPDR_PUPDR14_0);
+
+    GPIOB->MODER &= ~(GPIO_MODER_MODER12 | GPIO_MODER_MODER13 | 
+                      GPIO_MODER_MODER14 | GPIO_MODER_MODER15);
+    GPIOB->MODER |= (GPIO_MODER_MODER12_1 | GPIO_MODER_MODER13_1 | 
+                     GPIO_MODER_MODER14_1 | GPIO_MODER_MODER15_1);
+    GPIOB->AFR[1] &= ~(GPIO_AFRH_AFSEL12 | GPIO_AFRH_AFSEL13 | 
+                       GPIO_AFRH_AFSEL14 | GPIO_AFRH_AFSEL15);
+
+    GPIOB->MODER &= ~GPIO_MODER_MODER9;
+    GPIOB->MODER |= GPIO_MODER_MODER9_0;
+    disable_sdcard();
+
+    SPI1->CR1 &= ~SPI_CR1_SPE;
+    SPI1->CR1 |= (SPI_CR1_BR_2 | SPI_CR1_BR_1 | SPI_CR1_BR_0);
+    SPI1->CR2 = SPI_CR2_DS_2 | SPI_CR2_DS_1 | SPI_CR2_DS_0;
+    SPI1->CR1 |= SPI_CR1_MSTR;
+    SPI1->CR2 |= SPI_CR2_SSOE;
+    SPI1->CR1 |= SPI_CR1_SPE;
+
+    SPI2->CR1 &= ~SPI_CR1_SPE;
+    SPI2->CR1 |= SPI_CR1_MSTR | SPI_CR1_SSI | SPI_CR1_SSM;
+    SPI2->CR1 |= (SPI_CR1_BR_2 | SPI_CR1_BR_1 | SPI_CR1_BR_0);
+    SPI2->CR2 = SPI_CR2_DS_2 | SPI_CR2_DS_1 | SPI_CR2_DS_0 | SPI_CR2_FRXTH;
+    SPI2->CR1 |= SPI_CR1_SPE;
+
     sdcard_io_high_speed();
 }
 

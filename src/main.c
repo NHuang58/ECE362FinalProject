@@ -63,22 +63,20 @@ void enable_ports(void) {
 //============================================================================
 void setup_dma(void) {
     RCC->AHBENR |= RCC_AHBENR_DMA1EN;
-    DMA1_Channel5->CMAR = (uint32_t) &msg;
-    DMA1_Channel5->CPAR = (uint32_t) &GPIOB->ODR;
+    DMA1_Channel4->CMAR = (uint32_t) &msg;
+    DMA1_Channel4->CPAR = (uint32_t) &GPIOB->ODR;
 
-    DMA1_Channel5->CNDTR = 8;
-    DMA1_Channel5->CCR |= DMA_CCR_DIR;
-    DMA1_Channel5->CCR |= DMA_CCR_MINC;
-    DMA1_Channel5->CCR |= 0x400;
-    DMA1_Channel5->CCR |= 0x100;
-    DMA1_Channel5->CCR |= 0x20;
-
+    DMA1_Channel4->CNDTR = 8;
+    DMA1_Channel4->CCR |= DMA_CCR_DIR;
+    DMA1_Channel4->CCR |= DMA_CCR_MINC;
+    DMA1_Channel4->CCR |= 0x400;
+    DMA1_Channel4->CCR |= 0x100;
+    DMA1_Channel4->CCR |= 0x20;
 }
 
 void enable_dma(void) {
-    DMA1_Channel5->CCR |= 0x1;
+    DMA1_Channel4->CCR |= 0x1;
 }
-
 //============================================================================
 // init_tim15()
 //============================================================================
@@ -352,40 +350,18 @@ void init_tim6(void) {
 //============================================================================
 // MASTER
 //============================================================================
-// void USART2_Init(uint32_t baud_rate) {
-//     // Enable the clock for GPIOA and USART2
-//     RCC->AHBENR |= RCC_AHBENR_GPIOAEN;   // Enable GPIOA clock
-//     RCC->APB1ENR |= RCC_APB1ENR_USART2EN; // Enable USART2 clock
-
-//     // Configure PA2 (TX) and PA3 (RX) as alternate function
-//     GPIOA->MODER &= ~(GPIO_MODER_MODER2 | GPIO_MODER_MODER3); // Clear mode
-//     GPIOA->MODER |= GPIO_MODER_MODER2_1 | GPIO_MODER_MODER3_1; // Set to AF
-//     GPIOA->AFR[0] |= (1 << GPIO_AFRL_AFSEL2_Pos) | (1 << GPIO_AFRL_AFSEL3_Pos); // Set AF1 for PA2 and PA3
-
-//     // Configure USART2
-//     USART2->BRR = SystemCoreClock / baud_rate; // Set baud rate
-//     USART2->CR1 = USART_CR1_TE | USART_CR1_RE | USART_CR1_UE; // Enable TX, RX, and USART
-
-//     // Wait for USART to be ready
-//     while (!(USART2->ISR & USART_ISR_TEACK)); // Wait for TX ready
-//     while (!(USART2->ISR & USART_ISR_REACK)); // Wait for RX ready
-// }
-
+// Initialize SPI1 in slow mode for SD card initialization
 void init_spi1_slow(){
     // SPI pins:
     // PB2 -> CS (NSS)
     // PB3 -> SCK
     // PB4 -> SDO (MISO)
     // PB5 -> SDI (MOSI)
-    RCC->APB2ENR |= RCC_APB2ENR_SPI1EN; // Enable SPI1 clock
-    RCC->AHBENR |= RCC_AHBENR_GPIOAEN; // Enable GPIOA clock
+    RCC->APB2ENR |= RCC_APB2ENR_SPI1EN;
 
-    // Step 2: Configure GPIOA pins as Alternate Function for SPI
-    GPIOA->MODER &= ~((0b11 << (5 * 2)) | (0b11 << (7 * 2))); // Clear mode for PA5, PA7
-    GPIOA->MODER |= (0b10 << (5 * 2)) | (0b10 << (7 * 2));    // Set PA5, PA7 to AF mode
-
-    GPIOA->AFR[0] &= ~((0xF << (5 * 4)) | (0xF << (7 * 4)));  // Clear AFR for PA5, PA7
-    GPIOA->AFR[0] |= (0x0 << (5 * 4)) | (0x0 << (7 * 4));  
+    GPIOB->MODER &= ~0xff0;
+    GPIOB->MODER |= 0xa90;
+    GPIOB->AFR[0] &= ~0xfff000;
 
     // some more implementation pls
 
@@ -519,6 +495,75 @@ void drawNote(char note){
     LCD_DrawChar(30, 200, 0, 0xffffff, 'a', 16, 1);
 }
 
+//===========================================================================
+// Initialize the SPI2 peripheral.
+//===========================================================================
+void init_spi2(void) { 
+    //Enable GPIOB
+    RCC->AHBENR |= RCC_AHBENR_GPIOBEN; 
+    RCC->APB1ENR |= RCC_APB1ENR_SPI2EN;
+
+    //Configure peripherals
+    GPIOB->MODER &= ~(0xcf000000);
+    GPIOB->MODER |= (0x8a << 24);
+    
+    //Configure AFR
+    GPIOB->AFR[0] &= ~(0xf0ff << 16);
+
+    //Ensure that the CR1_SPE bit is clear first
+    SPI2->CR1 &= ~SPI_CR1_SPE; 
+    
+    //Set the baud rate as low as possible (maximum divisor for BR).
+    SPI2->CR1 |= (0x7 << 3);
+    
+    //Configure the interface for a 16-bit word size. 
+    SPI2->CR2 |= (0xf << 8);
+
+    //Configure the SPI channel to be in "master configuration".
+    SPI2->CR1 |= SPI_CR1_MSTR; 
+
+    //Set the SS Output enable bit and enable NSSP.
+    SPI2->CR2 |= SPI_CR2_SSOE;
+    SPI2->CR2 |= SPI_CR2_NSSP;
+
+    //Set the TXDMAEN bit to enable DMA transfers on transmit buffer empty
+    SPI2->CR2 |= SPI_CR2_TXDMAEN; 
+    
+    //Enable the SPI channel.
+    SPI2->CR1 |= SPI_CR1_SPE; 
+    
+}
+
+
+//===========================================================================
+// Configure the SPI2 peripheral to trigger the DMA channel when the
+// transmitter is empty.  Use the code from setup_dma from lab 5.
+//===========================================================================
+// For SPI2
+void spi2_setup_dma(void) {
+    RCC->AHBENR |= RCC_AHBENR_DMA1EN;
+    
+    DMA1_Channel5->CCR &= ~(0x1);
+
+    DMA1_Channel5->CMAR = (uint32_t) &msg;
+    DMA1_Channel5->CPAR = (uint32_t) &SPI2->DR;
+
+    DMA1_Channel5->CNDTR = 8;
+    DMA1_Channel5->CCR |= DMA_CCR_DIR;
+    DMA1_Channel5->CCR |= DMA_CCR_MINC;
+    DMA1_Channel5->CCR |= 0x400;
+    DMA1_Channel5->CCR |= 0x100;
+    DMA1_Channel5->CCR |= 0x20;
+    
+    SPI2->CR2 |= SPI_CR2_TXDMAEN;
+}
+
+void spi2_enable_dma(void) {
+    DMA1_Channel5->CCR |= 0x1;
+}
+
+
+
 //============================================================================
 // All the things you need to test your subroutines.
 //============================================================================
@@ -550,11 +595,23 @@ int main(void) {
     init_tim2();
     init_wavetable();
     init_tim6();
-    LCD_Setup();
 
-    LCD_DrawFillRectangle(100,40,105,280,0x0);
 
     setup_tim1();
+
+    init_spi2();
+    spi2_setup_dma();
+    spi2_enable_dma();
+    init_tim15();
+
+    init_lcd_spi();
+    nano_wait(100000);
+    LCD_Setup();
+    LCD_Clear(BLACK);
+    nano_wait(100000);
+    drawStaff('A');
+    
+    //LCD_DrawFillRectangle(100,40,105,280,0x0);
 
     // USART2_Init(9600);
     
@@ -568,7 +625,7 @@ int main(void) {
     // End of for loop
 
     // Demonstrate part 1
-// #define SCROLL_DISPLAY
+#//define SCROLL_DISPLAY
 #ifdef SCROLL_DISPLAY
     for(;;)
         for(int i=0; i<8; i++) {
@@ -580,7 +637,7 @@ int main(void) {
     init_tim7();
 
     // Demonstrate part 2
-// #define SHOW_KEY_EVENTS
+//#define SHOW_KEY_EVENTS
 #ifdef SHOW_KEY_EVENTS
     show_keys();
 #endif
@@ -735,6 +792,11 @@ for (;;) {
 }
 
 set_freq(0, 0);
+#endif
+
+// #define TFT
+#ifdef TFT
+    drawNote('A');
 #endif
 
     // Have fun.

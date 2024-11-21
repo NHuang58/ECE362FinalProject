@@ -4,7 +4,7 @@
 #include <stdio.h> // for memmove()
 #include "main.h"
 
-#define time 1050000000
+#define time 250000000
 
 void nano_wait(unsigned int n) {
     asm(    "        mov r0,%0\n"
@@ -100,6 +100,8 @@ void clear_display(void) {
         msg[i] = msg[i] & 0xff00;
     }
 }
+
+
 
 //=============================================================================
 // Part 2: Debounced keypad scanning.
@@ -359,7 +361,7 @@ void dialer(void)
 }
 
 void play_piano(void) {
-    float freq = 440.0;         // Base frequency (A4)
+    float freq = 0.0;         // Base frequency (A4)
     int enter = 0;              // Sentinel variable
     int flat = 0;               // Indicates if the note is sharp
     int octave = 4;
@@ -374,6 +376,7 @@ void play_piano(void) {
     }
 
     while (!enter) {
+        DAC->CR &= ~DAC_CR_EN1;
         int key = get_keypress();
 
         // Handle octave adjustment without playing a note
@@ -406,7 +409,7 @@ void play_piano(void) {
             
             case '0': freq = 440.00; note = ' '; octave = 4; flat = 0; break;
             case 'D': freq = 0     ; note = '0'; enter  = 1; flat = 0; break;  // Turn off
-            default: continue; // Ignore other keys
+            default:  continue; // Ignore other keys
         }
 
 
@@ -433,16 +436,15 @@ void play_piano(void) {
         // Send the Char to the TFT
         // Set the rgb LED for the octave
         // Set the frequency for the note
-
-        // USART2_Transmit(noteToSend);
-        setrgb(rgb);
+        DAC->CR |= DAC_CR_EN1;
 
         set_freq(0, freq * pow(2, (octave - 4)));
+        setrgb(rgb);
 
         nano_wait(time);
         
         setrgb(0);
-        set_freq(0, 0);
+        // set_freq(0, 0);
     }
 }
 

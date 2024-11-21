@@ -7,7 +7,6 @@
 #include <stdio.h>
 #include <stdint.h>
 #include "lcd.h"
-#include "main.h"
 
 void nano_wait(int t);
 
