@@ -552,6 +552,8 @@ int main(void) {
     init_tim6();
     LCD_Setup();
 
+    LCD_DrawFillRectangle(100,40,105,280,0x0);
+
     setup_tim1();
 
     // USART2_Init(9600);
